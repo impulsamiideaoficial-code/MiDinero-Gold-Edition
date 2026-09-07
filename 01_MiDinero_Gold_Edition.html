@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MiDinero Gold - Control Financiero Profesional</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --bg-base: #0a0a0c;
+      --bg-sidebar: #121216;
+      --bg-card: #18181f;
+      --border-color: #2a2a36;
+      
+      --text-primary: #f3f4f6;
+      --text-muted: #9ca3af;
+      
+      --gold-primary: #d4af37;
+      --gold-light: #f3e5ab;
+      --gold-gradient: linear-gradient(135deg, #bf953f, #fcf6ba, #b38728, #fbf5b7, #aa771c);
+      --gold-glow: rgba(212, 175, 55, 0.2);
+      
+      --success: #10b981;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: var(--bg-base); color: var(--text-primary); display: flex; min-height: 100vh; overflow-x: hidden; }
+
+    .sidebar { width: 260px; background-color: var(--bg-sidebar); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; position: fixed; top: 0; bottom: 0; left: 0; z-index: 50; transition: transform 0.3s ease; }
+    .brand { display: flex; align-items: center; gap: 14px; padding: 26px 20px; border-bottom: 1px solid var(--border-color); }
+    .brand-icon { width: 40px; height: 40px; background: var(--gold-gradient); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 1.4rem; color: #000; flex-shrink: 0; }
+    .brand-text h2 { font-size: 1.2rem; font-weight: 800; background: var(--gold-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .brand-text span { font-size: 0.65rem; color: var(--gold-light); font-weight: 700; text-transform: uppercase; }
+
+    .nav-list { padding: 20px 12px; display: flex; flex-direction: column; gap: 6px; flex: 1; overflow-y: auto; }
+    .nav-item { display: flex; align-items: center; gap: 14px; padding: 12px 16px; border-radius: var(--radius-md); color: var(--text-muted); font-size: 0.9rem; font-weight: 500; cursor: pointer; border: 1px solid transparent; }
+    .nav-item:hover { background-color: var(--bg-card); color: var(--text-primary); }
+    .nav-item.active { background: var(--gold-gradient); color: #000; font-weight: 700; }
+    .nav-item svg { width: 20px; height: 20px; }
+
+    .main { margin-left: 260px; flex: 1; display: flex; flex-direction: column; min-width: 0; transition: margin 0.3s ease; }
+    .topbar { height: 70px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; padding: 0 32px; background-color: rgba(18, 18, 22, 0.85); backdrop-filter: blur(12px); position: sticky; top: 0; z-index: 40; }
+    .content { padding: 32px; max-width: 1400px; width: 100%; margin: 0 auto; }
+
+    .view-mode-selector { display: flex; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 30px; padding: 3px; gap: 2px; }
+    .mode-btn { padding: 6px 14px; border-radius: 20px; border: none; background: transparent; color: var(--text-muted); font-size: 0.75rem; font-weight: 700; cursor: pointer; }
+    .mode-btn.active { background: var(--gold-gradient); color: #000; }
+
+    .device-badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(212, 175, 55, 0.1); border: 1px solid rgba(212, 175, 55, 0.3); color: var(--gold-light); font-size: 0.75rem; font-weight: 700; padding: 4px 10px; border-radius: 20px; }
+
+    .view-container { display: none; }
+    .view-container.active { display: block; animation: fadeIn 0.3s ease-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+    .grid { display: grid; gap: 20px; }
+    .cols-4 { grid-template-columns: repeat(4, 1fr); }
+    .cols-3 { grid-template-columns: repeat(3, 1fr); }
+    .cols-2 { grid-template-columns: repeat(2, 1fr); }
+
+    .card { background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 24px; position: relative; }
+    .card:hover { border-color: rgba(212, 175, 55, 0.3); }
+    .card-title { font-size: 0.78rem; text-transform: uppercase; color: var(--gold-light); font-weight: 700; }
+    .card-value { font-size: 1.9rem; font-weight: 800; margin-top: 8px; }
+
+    .progress-bar-bg { width: 100%; height: 10px; background-color: var(--bg-sidebar); border-radius: 10px; overflow: hidden; margin-top: 12px; border: 1px solid var(--border-color); }
+    .progress-bar-fill { height: 100%; border-radius: 10px; transition: width 0.4s ease; }
+
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 20px; border-radius: var(--radius-md); font-size: 0.875rem; font-weight: 700; cursor: pointer; border: none; transition: all 0.2s; }
+    .btn-primary { background: var(--gold-gradient); color: #000; box-shadow: 0 4px 12px var(--gold-glow); }
+    .btn-primary:hover { opacity: 0.95; transform: translateY(-1px); }
+    .btn-secondary { background-color: #262633; color: var(--text-primary); border: 1px solid var(--border-color); }
+    .btn-secondary:hover { background-color: #323244; }
+    .btn-danger { background-color: rgba(239, 68, 68, 0.15); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.4); }
+    .btn-danger:hover { background-color: var(--danger); color: white; }
+    .btn-sm { padding: 6px 12px; font-size: 0.8rem; }
+
+    .table-wrap { width: 100%; overflow-x: auto; border: 1px solid var(--border-color); border-radius: var(--radius-md); margin-top: 16px; }
+    table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem; }
+    th { background-color: var(--bg-sidebar); padding: 14px 18px; color: var(--gold-light); font-weight: 700; border-bottom: 1px solid var(--border-color); font-size: 0.8rem; text-transform: uppercase; white-space: nowrap; }
+    td { padding: 14px 18px; border-bottom: 1px solid var(--border-color); white-space: nowrap; }
+
+    .badge { padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; display: inline-block; }
+    .badge-inc { background: rgba(16, 185, 129, 0.15); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.3); }
+    .badge-exp { background: rgba(239, 68, 68, 0.15); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.3); }
+
+    .tag-chip { display: inline-flex; align-items: center; justify-content: space-between; background: var(--bg-sidebar); border: 1px solid var(--border-color); padding: 10px 16px; border-radius: var(--radius-md); font-size: 0.9rem; font-weight: 600; color: var(--gold-light); }
+
+    .mobile-nav { 
+      display: none; 
+      position: fixed; 
+      bottom: 0; 
+      left: 0; 
+      right: 0; 
+      background: var(--bg-sidebar); 
+      border-top: 1px solid var(--border-color); 
+      z-index: 60; 
+      padding: 8px 10px; 
+      overflow-x: auto; 
+      gap: 12px; 
+      justify-content: flex-start;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+    .mobile-nav::-webkit-scrollbar { display: none; }
+    
+    .mobile-nav-item { 
+      display: flex; 
+      flex-direction: column; 
+      align-items: center; 
+      justify-content: center; 
+      min-width: 64px; 
+      padding: 6px 4px; 
+      color: var(--text-muted); 
+      font-size: 0.7rem; 
+      font-weight: 600; 
+      cursor: pointer; 
+      text-decoration: none; 
+      flex-shrink: 0; 
+      border-radius: 8px;
+      transition: all 0.2s;
+    }
+    .mobile-nav-item.active { 
+      color: var(--gold-primary); 
+      background: rgba(212, 175, 55, 0.1);
+    }
+    .mobile-nav-item svg { width: 22px; height: 22px; margin-bottom: 2px; }
+
+    body.layout-mobile .sidebar { transform: translateX(-100%); }
+    body.layout-mobile .main { margin-left: 0; padding-bottom: 85px; }
+    body.layout-mobile .mobile-nav { display: flex; }
+    body.layout-mobile .cols-4, body.layout-mobile .cols-3, body.layout-mobile .cols-2 { grid-template-columns: 1fr !important; }
+    body.layout-mobile .topbar { padding: 0 16px; }
+
+    @media (max-width: 768px) {
+      .sidebar { transform: translateX(-100%); }
+      .main { margin-left: 0; padding-bottom: 85px; }
+      .mobile-nav { display: flex; }
+      .cols-4, .cols-3, .cols-2 { grid-template-columns: 1fr !important; }
+      .topbar { padding: 0 16px; }
+      .content { padding: 16px; }
+    }
+
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.2s; padding: 16px; }
+    .modal-overlay.active { opacity: 1; pointer-events: auto; }
+    .modal-box { background-color: var(--bg-card); border: 1px solid var(--gold-primary); border-radius: var(--radius-lg); width: 100%; max-width: 480px; padding: 28px; max-height: 90vh; overflow-y: auto; }
+
+    .form-group { margin-bottom: 16px; }
+    .form-label { display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; }
+    .form-control { width: 100%; background: var(--bg-sidebar); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 10px 14px; color: white; font-size: 0.9rem; outline: none; }
+    .form-control:focus { border-color: var(--gold-primary); }
+
+    .help-header { background: linear-gradient(180deg, rgba(212, 175, 55, 0.08) 0%, transparent 100%); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 28px; margin-bottom: 24px; }
+    .help-header h2 { color: var(--gold-light); font-size: 1.5rem; margin-bottom: 8px; }
+    .help-header p { color: var(--text-muted); font-size: 0.95rem; line-height: 1.5; }
+
+    .alert-box-security { background-color: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.4); border-radius: var(--radius-lg); padding: 20px; margin-bottom: 28px; }
+    .alert-box-security h4 { color: var(--danger); font-size: 1.05rem; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+    .alert-box-security p { font-size: 0.88rem; color: #d1d5db; line-height: 1.6; }
+
+    .help-card { background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 24px; }
+    .help-card-icon { width: 38px; height: 38px; background: rgba(212, 175, 55, 0.15); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; color: var(--gold-light); margin-bottom: 14px; }
+    .help-card h3 { color: var(--gold-light); font-size: 1.1rem; margin-bottom: 10px; }
+    .help-card p { color: var(--text-muted); font-size: 0.88rem; line-height: 1.6; margin-bottom: 12px; }
+    .help-list { list-style: none; padding: 0; }
+    .help-list li { font-size: 0.85rem; color: var(--text-primary); padding: 6px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.05); display: flex; align-items: flex-start; gap: 8px; }
+    .help-list li:last-child { border-bottom: none; }
+    .help-list li::before { content: "•"; color: var(--gold-primary); font-weight: bold; font-size: 1.2rem; line-height: 1; }
+  </style>
+</head>
+<body class="layout-pc">
+
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-icon">€</div>
+      <div class="brand-text">
+        <h2>MiDinero</h2>
+        <span>GOLD EDITION</span>
+      </div>
+    </div>
+    <nav class="nav-list">
+      <div class="nav-item active" onclick="switchNav(this, 'dash')">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+        Panel Principal
+      </div>
+      <div class="nav-item" onclick="switchNav(this, 'tx')">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        Transacciones
+      </div>
+      <div class="nav-item" onclick="switchNav(this, 'categories')">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M7 7h10M7 12h10m-7 5h7"/></svg>
+        Categorías
+      </div>
+      <div class="nav-item" onclick="switchNav(this, 'budgets')">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"/><path stroke-linecap="round" stroke-linejoin="round" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"/></svg>
+        Presupuestos
+      </div>
+      <div class="nav-item" onclick="switchNav(this, 'goals')">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+        Metas de Ahorro
+      </div>
+      <div class="nav-item" onclick="switchNav(this, 'analytics')">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+        Análisis Financiero
+      </div>
+      <div class="nav-item" onclick="switchNav(this, 'settings')">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        Ajustes & Copias
+      </div>
+      <div class="nav-item" onclick="switchNav(this, 'help')">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        Ayuda & Tutorial
+      </div>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div style="display:flex; align-items:center; gap: 12px;">
+        <div class="view-mode-selector">
+          <button class="mode-btn active" id="btn-mode-pc" onclick="setLayoutMode('pc')">💻 PC</button>
+          <button class="mode-btn" id="btn-mode-mobile" onclick="setLayoutMode('mobile')">📱 Móvil</button>
+        </div>
+        <div class="device-badge" id="device-info">🖥️ Web PC</div>
+      </div>
+      
+      <div style="display:flex; align-items:center; gap: 10px;">
+        <button class="btn btn-primary" onclick="openModal('tx')">+ Registro</button>
+      </div>
+    </header>
+
+    <div class="content">
+
+      <section id="view-dash" class="view-container active">
+        <h1 style="margin-bottom: 20px; font-weight: 800;">Estado de tus Finanzas</h1>
+        <div class="grid cols-4" style="margin-bottom: 24px;">
+          <div class="card"><div class="card-title">Balance Total</div><div class="card-value" style="color:var(--gold-light);" id="dash-balance">0,00 €</div></div>
+          <div class="card"><div class="card-title">Ingresos Totales</div><div class="card-value" style="color: var(--success);" id="dash-inc">0,00 €</div></div>
+          <div class="card"><div class="card-title">Gastos Totales</div><div class="card-value" style="color: var(--danger);" id="dash-exp">0,00 €</div></div>
+          <div class="card"><div class="card-title">Tasa de Ahorro</div><div class="card-value" style="color: var(--warning);" id="dash-savings">0%</div></div>
+        </div>
+
+        <div class="card">
+          <h3 style="color:var(--gold-light);">Últimos Movimientos</h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Fecha</th><th>Concepto</th><th>Categoría</th><th>Tipo</th><th style="text-align: right;">Monto</th></tr>
+              </thead>
+              <tbody id="table-dash"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section id="view-tx" class="view-container">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px; flex-wrap:wrap; gap:10px;">
+          <h1>Historial Completo</h1>
+          <button class="btn btn-primary" onclick="openModal('tx')">+ Registro</button>
+        </div>
+        <div class="card">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Fecha</th><th>Concepto</th><th>Categoría</th><th>Tipo</th><th style="text-align: right;">Monto</th><th style="text-align: center;">Acción</th></tr>
+              </thead>
+              <tbody id="table-tx"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section id="view-categories" class="view-container">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px; flex-wrap:wrap; gap:10px;">
+          <h1>Categorías</h1>
+          <button class="btn btn-primary" onclick="openModal('cat')">+ Crear Categoría</button>
+        </div>
+        <div class="card">
+          <div id="categories-container" class="grid cols-3"></div>
+        </div>
+      </section>
+
+      <section id="view-budgets" class="view-container">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px; flex-wrap:wrap; gap:10px;">
+          <h1>Límites de Gasto</h1>
+          <button class="btn btn-primary" onclick="openModal('budget')">+ Nuevo Límite</button>
+        </div>
+        <div class="grid cols-3" id="budgets-container"></div>
+      </section>
+
+      <section id="view-goals" class="view-container">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px; flex-wrap:wrap; gap:10px;">
+          <h1>Metas de Ahorro</h1>
+          <button class="btn btn-primary" onclick="openModal('goal')">+ Nueva Meta</button>
+        </div>
+        <div class="grid cols-3" id="goals-container"></div>
+      </section>
+
+      <section id="view-analytics" class="view-container">
+        <h1 style="margin-bottom: 20px;">Análisis Financiero</h1>
+        <div class="grid cols-2">
+          <div class="card">
+            <h3 style="margin-bottom: 16px; color:var(--gold-light);">Ingresos vs Gastos</h3>
+            <canvas id="chart-bars" height="220"></canvas>
+          </div>
+          <div class="card">
+            <h3 style="margin-bottom: 16px; color:var(--gold-light);">Distribución de Gastos</h3>
+            <canvas id="chart-doughnut" height="220"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <section id="view-settings" class="view-container">
+        <h1 style="margin-bottom: 20px;">Gestión de Datos y Copias de Seguridad</h1>
+        <div class="grid cols-2">
+          <div class="card">
+            <h3 style="color:var(--gold-light);">📦 Copia de Seguridad</h3>
+            <p style="color:var(--text-muted); font-size:0.85rem; margin:10px 0;">Descarga tus datos a tu ordenador/móvil o restáuralos desde una copia guardada.</p>
+            <div style="display:flex; gap: 10px; margin-top:15px; flex-wrap:wrap;">
+              <button class="btn btn-primary" onclick="exportData()">📥 Descargar Backup (.json)</button>
+              <button class="btn btn-secondary" onclick="document.getElementById('import-file').click()">📤 Restaurar Backup</button>
+              <input type="file" id="import-file" style="display:none" accept=".json" onchange="importData(event)">
+            </div>
+          </div>
+          <div class="card">
+            <h3 style="color:var(--danger);">⚠️ Zona de Control</h3>
+            <p style="color:var(--text-muted); font-size:0.85rem; margin:10px 0;">Gestiona los datos actuales o reinicia la app con datos de demostración.</p>
+            <div style="display:flex; gap: 10px; margin-top:15px; flex-wrap:wrap;">
+              <button class="btn btn-danger" onclick="wipeData()">🗑️ Borrar Todo</button>
+              <button class="btn btn-secondary" onclick="loadDemoData()">🔄 Cargar Datos Demo</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="view-help" class="view-container">
+        <div class="help-header">
+          <h2>Centro de Ayuda & Guía Operativa</h2>
+          <p>Bienvenido al manual de uso de <strong>MiDinero Gold Edition</strong>. Aquí encontrarás todo lo necesario para mantener tus finanzas ordenadas y tus datos 100% seguros.</p>
+        </div>
+
+        <div class="alert-box-security">
+          <h4>🛡️ ¡AVISO IMPORTANTE DE SEGURIDAD PARA TUS DATOS!</h4>
+          <p>
+            Esta aplicación funciona de manera <strong>totalmente privada y local</strong>. Tus datos financieros se guardan únicamente dentro del almacenamiento del navegador de tu dispositivo (`localStorage`).
+            <br><br>
+            ⚠️ <strong>¿Cómo evitar sorpresas o pérdida de datos?</strong>
+            Si realizas un borrado de caché, limpias el historial de navegación o cambias de móvil/PC, <strong>los datos se eliminarán permanentemente</strong> si no cuentas con una copia de respaldo.
+            <br>
+            💡 <strong>Solución:</strong> Dirígete periódicamente a la pestaña <strong>"Ajustes & Copias"</strong> y haz clic en <strong>"Descargar Backup (.json)"</strong> para guardar una copia de tus registros en tu equipo.
+          </p>
+        </div>
+
+        <h2 style="margin-bottom: 16px; color:var(--gold-light);">Guía de Uso por Módulos</h2>
+        
+        <div class="grid cols-2" style="margin-bottom: 24px;">
+          <div class="help-card">
+            <div class="help-card-icon">💸</div>
+            <h3>1. Transacciones (Ingresos y Gastos)</h3>
+            <p>Registra cualquier entrada o salida de dinero de forma rápida:</p>
+            <ul class="help-list">
+              <li>Pulsa en <strong>"+ Nuevo Registro"</strong> en la barra superior.</li>
+              <li>Elige entre <strong>"Ingreso (+)"</strong> o <strong>"Gasto (-)"</strong>.</li>
+              <li>Asigna una categoría y el importe correspondiente.</li>
+              <li>Si te equivocas, ve al historial y pulsa el botón rojo <strong>"✕"</strong> para eliminarlo.</li>
+            </ul>
+          </div>
+
+          <div class="help-card">
+            <div class="help-card-icon">📊</div>
+            <h3>2. Presupuestos y Categorías</h3>
+            <p>Define límites mensuales para no gastar de más:</p>
+            <ul class="help-list">
+              <li>Añade categorías personalizadas en la pestaña <strong>Categorías</strong>.</li>
+              <li>Fija un importe máximo mensual en <strong>Presupuestos</strong>.</li>
+              <li>El sistema te mostrará una barra con el porcentaje consumido en tiempo real.</li>
+            </ul>
+          </div>
+
+          <div class="help-card">
+            <div class="help-card-icon">🎯</div>
+            <h3>3. Metas de Ahorro</h3>
+            <p>Planifica proyectos de ahorro (viajes, fondo de emergencia, compras):</p>
+            <ul class="help-list">
+              <li>Crea una nueva meta fijando el objetivo total a conseguir.</li>
+              <li>Usa el botón <strong>"+ Aportar"</strong> para añadir dinero progresivamente.</li>
+              <li>Cada aportación genera automáticamente un registro contable de ahorro.</li>
+            </ul>
+          </div>
+
+          <div class="help-card">
+            <div class="help-card-icon">💾</div>
+            <h3>4. Copias de Seguridad y Restauración</h3>
+            <p>Mantén tu información totalmente a salvo en dos pasos:</p>
+            <ul class="help-list">
+              <li><strong>Descargar Backup:</strong> Crea un archivo `.json` con todas tus finanzas actualizadas.</li>
+              <li><strong>Restaurar Backup:</strong> Si cambias de ordenador, pulsa "Restaurar Backup" y selecciona tu archivo para recuperar todo al instante.</li>
+            </ul>
+          </div>
+
+          <div class="help-card" style="grid-column: 1 / -1;">
+            <div class="help-card-icon">🔑</div>
+            <h3>5. Licencia Individual y Derechos de Uso</h3>
+            <p>Aviso referente a la distribución del software:</p>
+            <ul class="help-list">
+              <li>Esta copia de <strong>MiDinero Gold Edition</strong> está vinculada a una licencia individual, nominal, personal e intransferible de uso comercial o privado.</li>
+              <li>Queda estrictamente prohibida la redistribución, copia, reventa, alojamiento en servidores ajenos o difusión masiva del código fuente o archivos ejecutables sin la autorización expresa del autor.</li>
+              <li>El uso no autorizado o piratería de la herramienta vulnera los derechos de propiedad intelectual y dará lugar a las acciones legales correspondientes.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <nav class="mobile-nav">
+    <a class="mobile-nav-item active" onclick="switchNavMobile(this, 'dash')">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+      Inicio
+    </a>
+    <a class="mobile-nav-item" onclick="switchNavMobile(this, 'tx')">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      Pagos
+    </a>
+    <a class="mobile-nav-item" onclick="switchNavMobile(this, 'categories')">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h10M7 12h10m-7 5h7"/></svg>
+      Categorías
+    </a>
+    <a class="mobile-nav-item" onclick="switchNavMobile(this, 'budgets')">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"/></svg>
+      Límites
+    </a>
+    <a class="mobile-nav-item" onclick="switchNavMobile(this, 'goals')">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+      Metas
+    </a>
+    <a class="mobile-nav-item" onclick="switchNavMobile(this, 'analytics')">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+      Gráficas
+    </a>
+    <a class="mobile-nav-item" onclick="switchNavMobile(this, 'settings')">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
+      Copias
+    </a>
+    <a class="mobile-nav-item" onclick="switchNavMobile(this, 'help')">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      Ayuda
+    </a>
+  </nav>
+
+  <div class="modal-overlay" id="modal-tx">
+    <div class="modal-box">
+      <h3 style="margin-bottom: 16px; color:var(--gold-light);">Añadir Registro</h3>
+      <form onsubmit="handleSaveTx(event)">
+        <div class="form-group">
+          <label class="form-label">Tipo de Operación</label>
+          <select id="tx-type" class="form-control">
+            <option value="GASTO">Gasto (-)</option>
+            <option value="INGRESO">Ingreso (+)</option>
+          </select>
+        </div>
+        <div class="form-group"><label class="form-label">Concepto</label><input type="text" id="tx-title" class="form-control" placeholder="Ej. Compras supermercado..." required></div>
+        <div class="form-group"><label class="form-label">Categoría</label><select id="tx-cat" class="form-control" required></select></div>
+        <div class="form-group"><label class="form-label">Importe (€)</label><input type="number" step="0.01" id="tx-amount" class="form-control" placeholder="0.00" required></div>
+        <div class="form-group"><label class="form-label">Fecha</label><input type="date" id="tx-date" class="form-control" required></div>
+        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('tx')">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Guardar Registro</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modal-cat">
+    <div class="modal-box">
+      <h3 style="margin-bottom: 16px; color:var(--gold-light);">Nueva Categoría</h3>
+      <form onsubmit="handleSaveCat(event)">
+        <div class="form-group"><label class="form-label">Nombre</label><input type="text" id="cat-name" class="form-control" placeholder="Ej. Mascotas..." required></div>
+        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('cat')">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Crear</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modal-budget">
+    <div class="modal-box">
+      <h3 style="margin-bottom: 16px; color:var(--gold-light);">Nuevo Límite de Gasto</h3>
+      <form onsubmit="handleSaveBudget(event)">
+        <div class="form-group"><label class="form-label">Categoría</label><select id="budget-cat" class="form-control" required></select></div>
+        <div class="form-group"><label class="form-label">Límite Máximo (€)</label><input type="number" step="1" id="budget-max" class="form-control" placeholder="300" required></div>
+        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('budget')">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Establecer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modal-goal">
+    <div class="modal-box">
+      <h3 style="margin-bottom: 16px; color:var(--gold-light);">Nueva Meta de Ahorro</h3>
+      <form onsubmit="handleSaveGoal(event)">
+        <div class="form-group"><label class="form-label">Nombre de la Meta</label><input type="text" id="goal-name" class="form-control" placeholder="Ej. Fondo de Viaje" required></div>
+        <div class="form-group"><label class="form-label">Objetivo Total (€)</label><input type="number" step="1" id="goal-target" class="form-control" placeholder="2000" required></div>
+        <div class="form-group"><label class="form-label">Ahorro Inicial (€)</label><input type="number" step="1" id="goal-current" class="form-control" placeholder="0" value="0"></div>
+        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('goal')">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Guardar Meta</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modal-deposit">
+    <div class="modal-box">
+      <h3 style="margin-bottom: 16px; color:var(--gold-light);">Aportar Dinero a Meta</h3>
+      <form onsubmit="handleSaveDeposit(event)">
+        <input type="hidden" id="deposit-goal-id">
+        <div class="form-group"><label class="form-label">Importe a Ahorrar (€)</label><input type="number" step="0.01" id="deposit-amount" class="form-control" placeholder="50.00" required></div>
+        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('deposit')">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Confirmar Ahorro</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const KEY = 'MIDINERO_GOLD_DATA';
+    
+    const INITIAL = {
+      categories: ['Alimentación', 'Hogar', 'Ahorro', 'Nómina', 'Servicios', 'Ocio'],
+      transactions: [
+        { id: '1', title: 'Nómina Trabajo', amount: 2500, type: 'INGRESO', category: 'Nómina', date: new Date().toISOString().substring(0, 8) + '01' },
+        { id: '2', title: 'Alquiler / Hipoteca', amount: 750, type: 'GASTO', category: 'Hogar', date: new Date().toISOString().substring(0, 8) + '02' }
+      ],
+      budgets: { 'Alimentación': 400, 'Hogar': 800 },
+      goals: [{ id: '1', name: 'Fondo Emergencia', target: 5000, current: 2100 }]
+    };
+
+    let db = JSON.parse(localStorage.getItem(KEY)) || INITIAL;
+
+    if (!db.categories.includes('Ahorro')) db.categories.push('Ahorro');
+
+    let chartBarInstance = null;
+    let chartDoughnutInstance = null;
+
+    function save() { localStorage.setItem(KEY, JSON.stringify(db)); render(); }
+
+    function setLayoutMode(mode) {
+      const body = document.body;
+      const btnPc = document.getElementById('btn-mode-pc');
+      const btnMobile = document.getElementById('btn-mode-mobile');
+      const info = document.getElementById('device-info');
+
+      if (mode === 'mobile') {
+        body.classList.remove('layout-pc'); body.classList.add('layout-mobile');
+        btnMobile.classList.add('active'); btnPc.classList.remove('active');
+        info.innerHTML = '📱 Smartphone';
+      } else {
+        body.classList.remove('layout-mobile'); body.classList.add('layout-pc');
+        btnPc.classList.add('active'); btnMobile.classList.remove('active');
+        info.innerHTML = '🖥️ Web PC';
+      }
+      setTimeout(renderCharts, 200);
+    }
+
+    function switchView(viewId) {
+      document.querySelectorAll('.view-container').forEach(v => v.classList.remove('active'));
+      const targetView = document.getElementById(`view-${viewId}`);
+      if (targetView) targetView.classList.add('active');
+
+      const pcNavItems = document.querySelectorAll('.sidebar .nav-item');
+      pcNavItems.forEach(i => {
+        i.classList.remove('active');
+        if (i.getAttribute('onclick') && i.getAttribute('onclick').includes(`'${viewId}'`)) {
+          i.classList.add('active');
+        }
+      });
+
+      const mobileNavItems = document.querySelectorAll('.mobile-nav .mobile-nav-item');
+      mobileNavItems.forEach(i => {
+        i.classList.remove('active');
+        if (i.getAttribute('onclick') && i.getAttribute('onclick').includes(`'${viewId}'`)) {
+          i.classList.add('active');
+        }
+      });
+
+      if (viewId === 'analytics') setTimeout(renderCharts, 100);
+    }
+
+    function switchNav(el, viewId) { switchView(viewId); }
+    function switchNavMobile(el, viewId) { switchView(viewId); }
+
+    function openModal(id) { document.getElementById(`modal-${id}`).classList.add('active'); }
+    function closeModal(id) { document.getElementById(`modal-${id}`).classList.remove('active'); }
+
+    function openDepositModal(goalId) {
+      document.getElementById('deposit-goal-id').value = goalId;
+      openModal('deposit');
+    }
+
+    function handleSaveDeposit(e) {
+      e.preventDefault();
+      const goalId = document.getElementById('deposit-goal-id').value;
+      const amount = parseFloat(document.getElementById('deposit-amount').value);
+      const goal = db.goals.find(g => g.id === goalId);
+
+      if (goal && amount > 0) {
+        goal.current = parseFloat(goal.current) + amount;
+        db.transactions.unshift({
+          id: Date.now().toString(),
+          title: `Ahorro: ${goal.name}`,
+          type: 'GASTO',
+          category: 'Ahorro',
+          amount: amount,
+          date: new Date().toISOString().substring(0, 10)
+        });
+        save(); closeModal('deposit'); e.target.reset();
+      }
+    }
+
+    function handleSaveTx(e) {
+      e.preventDefault();
+      db.transactions.unshift({
+        id: Date.now().toString(),
+        title: document.getElementById('tx-title').value,
+        type: document.getElementById('tx-type').value,
+        category: document.getElementById('tx-cat').value,
+        amount: parseFloat(document.getElementById('tx-amount').value),
+        date: document.getElementById('tx-date').value
+      });
+      save(); closeModal('tx'); e.target.reset();
+    }
+
+    function handleSaveCat(e) {
+      e.preventDefault();
+      const val = document.getElementById('cat-name').value.trim();
+      if (val && !db.categories.includes(val)) { db.categories.push(val); save(); }
+      closeModal('cat'); e.target.reset();
+    }
+
+    function handleSaveBudget(e) {
+      e.preventDefault();
+      db.budgets[document.getElementById('budget-cat').value] = parseFloat(document.getElementById('budget-max').value);
+      save(); closeModal('budget'); e.target.reset();
+    }
+
+    function handleSaveGoal(e) {
+      e.preventDefault();
+      db.goals.push({
+        id: Date.now().toString(),
+        name: document.getElementById('goal-name').value,
+        target: parseFloat(document.getElementById('goal-target').value),
+        current: parseFloat(document.getElementById('goal-current').value || 0)
+      });
+      save(); closeModal('goal'); e.target.reset();
+    }
+
+    function deleteCategory(cat) { if(confirm(`¿Eliminar la categoría "${cat}"?`)) { db.categories = db.categories.filter(c => c !== cat); save(); } }
+    function deleteBudget(cat) { delete db.budgets[cat]; save(); }
+    function deleteGoal(id) { db.goals = db.goals.filter(g => g.id !== id); save(); }
+    function deleteTx(id) { db.transactions = db.transactions.filter(t => t.id !== id); save(); }
+
+    function render() {
+      const txSelect = document.getElementById('tx-cat');
+      const budgetSelect = document.getElementById('budget-cat');
+      txSelect.innerHTML = ''; budgetSelect.innerHTML = '';
+
+      db.categories.forEach(c => {
+        txSelect.innerHTML += `<option value="${c}">${c}</option>`;
+        budgetSelect.innerHTML += `<option value="${c}">${c}</option>`;
+      });
+
+      const catContainer = document.getElementById('categories-container');
+      catContainer.innerHTML = '';
+      db.categories.forEach(c => {
+        catContainer.innerHTML += `<div class="tag-chip"><span>${c}</span><button class="btn btn-danger btn-sm" style="padding:2px 6px;" onclick="deleteCategory('${c}')">✕</button></div>`;
+      });
+
+      let inc = 0, exp = 0;
+      const spentByCat = {};
+
+      db.transactions.forEach(t => {
+        const val = parseFloat(t.amount);
+        if(t.type === 'INGRESO' || t.type === 'INCOME') {
+          inc += val;
+        } else {
+          exp += val;
+          spentByCat[t.category] = (spentByCat[t.category] || 0) + val;
+        }
+      });
+
+      document.getElementById('dash-balance').innerText = (inc - exp).toFixed(2) + ' €';
+      document.getElementById('dash-inc').innerText = inc.toFixed(2) + ' €';
+      document.getElementById('dash-exp').innerText = exp.toFixed(2) + ' €';
+      document.getElementById('dash-savings').innerText = inc > 0 ? (((inc - exp) / inc) * 100).toFixed(0) + '%' : '0%';
+
+      const tbDash = document.getElementById('table-dash');
+      const tbTx = document.getElementById('table-tx');
+      tbDash.innerHTML = ''; tbTx.innerHTML = '';
+
+      db.transactions.forEach((t, index) => {
+        const isInc = (t.type === 'INGRESO' || t.type === 'INCOME');
+        const badgeLabel = isInc ? 'Ingreso' : 'Gasto';
+        const row = `<tr><td>${t.date}</td><td><strong>${t.title}</strong></td><td><span style="color:var(--gold-light);">${t.category}</span></td><td><span class="badge ${isInc ? 'badge-inc' : 'badge-exp'}">${badgeLabel}</span></td><td style="text-align:right; font-weight:700;">${isInc ? '+' : '-'}${parseFloat(t.amount).toFixed(2)} €</td></tr>`;
+        if (index < 5) tbDash.innerHTML += row;
+        tbTx.innerHTML += `<tr><td>${t.date}</td><td><strong>${t.title}</strong></td><td>${t.category}</td><td><span class="badge ${isInc ? 'badge-inc' : 'badge-exp'}">${badgeLabel}</span></td><td style="text-align:right; font-weight:700;">${parseFloat(t.amount).toFixed(2)} €</td><td style="text-align:center;"><button class="btn btn-danger btn-sm" onclick="deleteTx('${t.id}')">✕</button></td></tr>`;
+      });
+
+      const budgetContainer = document.getElementById('budgets-container');
+      budgetContainer.innerHTML = '';
+      const budgetKeys = Object.keys(db.budgets);
+
+      if (budgetKeys.length === 0) {
+        budgetContainer.innerHTML = '<p style="color:var(--text-muted); grid-column: 1/-1;">No has establecido límites de gasto aún.</p>';
+      } else {
+        budgetKeys.forEach(cat => {
+          const max = db.budgets[cat];
+          const current = spentByCat[cat] || 0;
+          const percent = Math.min(Math.round((current / max) * 100), 100);
+          const isExceeded = current > max;
+          const barColor = isExceeded ? 'var(--danger)' : (percent > 85 ? 'var(--warning)' : 'var(--gold-primary)');
+
+          budgetContainer.innerHTML += `
+            <div class="card">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h3 style="color:var(--gold-light);">${cat}</h3>
+                <button class="btn btn-danger btn-sm" onclick="deleteBudget('${cat}')">✕</button>
+              </div>
+              <div style="margin: 16px 0 8px 0; display:flex; justify-content:space-between; font-weight:700;">
+                <span style="color:${isExceeded ? 'var(--danger)' : 'white'};">${current.toFixed(2)} €</span>
+                <span style="color:var(--text-muted);">de ${max.toFixed(2)} €</span>
+              </div>
+              <div class="progress-bar-bg">
+                <div class="progress-bar-fill" style="width: ${percent}%; background-color: ${barColor};"></div>
+              </div>
+              <div style="text-align:right; font-size:0.75rem; color:var(--text-muted); margin-top:6px;">${percent}% consumido</div>
+            </div>
+          `;
+        });
+      }
+
+      const goalContainer = document.getElementById('goals-container');
+      goalContainer.innerHTML = '';
+
+      if (db.goals.length === 0) {
+        goalContainer.innerHTML = '<p style="color:var(--text-muted); grid-column: 1/-1;">No tienes metas de ahorro creadas todavía.</p>';
+      } else {
+        db.goals.forEach(g => {
+          const percent = Math.min(Math.round((g.current / g.target) * 100), 100);
+          goalContainer.innerHTML += `
+            <div class="card">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h3 style="color:var(--gold-light);">${g.name}</h3>
+                <button class="btn btn-danger btn-sm" onclick="deleteGoal('${g.id}')">✕</button>
+              </div>
+              <div style="margin: 16px 0 8px 0; display:flex; justify-content:space-between; font-weight:700;">
+                <span style="color:var(--success);">${parseFloat(g.current).toFixed(2)} €</span>
+                <span style="color:var(--text-muted);">de ${parseFloat(g.target).toFixed(2)} €</span>
+              </div>
+              <div class="progress-bar-bg">
+                <div class="progress-bar-fill" style="width: ${percent}%; background: var(--gold-gradient);"></div>
+              </div>
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-top:14px;">
+                <span style="font-size:0.75rem; color:var(--text-muted);">${percent}% completado</span>
+                <button class="btn btn-primary btn-sm" onclick="openDepositModal('${g.id}')">+ Aportar</button>
+              </div>
+            </div>
+          `;
+        });
+      }
+
+      renderCharts();
+    }
+
+    function renderCharts() {
+      let totalInc = 0, totalExp = 0; const catMap = {};
+      db.transactions.forEach(t => {
+        const val = parseFloat(t.amount);
+        if (t.type === 'INGRESO' || t.type === 'INCOME') totalInc += val;
+        else { totalExp += val; catMap[t.category] = (catMap[t.category] || 0) + val; }
+      });
+
+      const ctxBar = document.getElementById('chart-bars');
+      if (ctxBar) {
+        if (chartBarInstance) chartBarInstance.destroy();
+        chartBarInstance = new Chart(ctxBar, { type: 'bar', data: { labels: ['Ingresos', 'Gastos'], datasets: [{ data: [totalInc, totalExp], backgroundColor: ['#10b981', '#ef4444'], borderRadius: 8 }] }, options: { responsive: true, plugins: { legend: { display: false } } } });
+      }
+
+      const ctxDoughnut = document.getElementById('chart-doughnut');
+      if (ctxDoughnut) {
+        if (chartDoughnutInstance) chartDoughnutInstance.destroy();
+        chartDoughnutInstance = new Chart(ctxDoughnut, { type: 'doughnut', data: { labels: Object.keys(catMap), datasets: [{ data: Object.values(catMap), backgroundColor: ['#d4af37', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6'] }] }, options: { responsive: true, plugins: { legend: { labels: { color: '#f3f4f6' } } } } });
+      }
+    }
+
+    function exportData() {
+      const blob = new Blob([JSON.stringify(db, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+      a.download = `midinero-backup-${new Date().toISOString().substring(0,10)}.json`; a.click();
+    }
+
+    function importData(e) {
+      const reader = new FileReader();
+      reader.onload = (evt) => { 
+        try {
+          db = JSON.parse(evt.target.result); 
+          if (!db.categories.includes('Ahorro')) db.categories.push('Ahorro');
+          save(); 
+          alert('¡Copia de seguridad restaurada con éxito!'); 
+        } catch(err) {
+          alert('El archivo seleccionado no es válido.');
+        }
+      };
+      reader.readAsText(e.target.files[0]);
+    }
+
+    function wipeData() { if(confirm('¿Eliminar todos los datos? Esta acción es irreversible.')) { db.transactions = []; db.budgets = {}; db.goals = []; save(); } }
+    function loadDemoData() { db = JSON.parse(JSON.stringify(INITIAL)); save(); }
+
+    document.getElementById('tx-date').value = new Date().toISOString().substring(0,10);
+    render();
+  </script>
+</body>
+</html>
