@@ -13,6 +13,8 @@ Aplicación gratuita para controlar ingresos, gastos y objetivos de ahorro.
 
 ## 📥 Descargar
 
+https://impulsamiideaoficial-code.github.io/MiDinero-Gold-Edition/
+
 Pulsa en **Code** → **Download ZIP**
 
 ## 🎥 YouTube
